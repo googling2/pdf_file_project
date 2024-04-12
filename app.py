@@ -1,7 +1,9 @@
 
 from datetime import date, datetime
-from fastapi import FastAPI, Depends, HTTPException, Request, Form, status
+from fastapi import FastAPI, Depends, File, HTTPException, Request, Form, UploadFile, status
 
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.responses import RedirectResponse
 from starlette.templating import Jinja2Templates
 
@@ -9,6 +11,7 @@ from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 import uvicorn
 import models
+import os
 
 # models에 정의한 모든 클래스, 연결한 DB엔진에 테이블로 생성
 models.Base.metadata.create_all(bind=engine)
@@ -16,6 +19,7 @@ models.Base.metadata.create_all(bind=engine)
 templates = Jinja2Templates(directory="templates")
 
 app = FastAPI()
+app.mount("/files", StaticFiles(directory="files"), name="files")
 
 # Dependency
 def get_db():
@@ -50,7 +54,7 @@ def add(req: Request, title: str = Form(...), date: date = Form(None), db: Sessi
     return RedirectResponse(url=url, status_code=status.HTTP_303_SEE_OTHER)
 
 @app.get("/update/{todo_id}")
-def update(req: Request, todo_id: int, db: Session = Depends(get_db)):
+def add(req: Request, todo_id: int, db: Session = Depends(get_db)):
     todo = db.query(models.Todo).filter(models.Todo.id == todo_id).first()
     todo.complete = not todo.complete
     db.commit()
@@ -59,12 +63,41 @@ def update(req: Request, todo_id: int, db: Session = Depends(get_db)):
 
 
 @app.get("/delete/{todo_id}")
-def delete(req: Request, todo_id: int, db: Session = Depends(get_db)):
+def add(req: Request, todo_id: int, db: Session = Depends(get_db)):
     todo = db.query(models.Todo).filter(models.Todo.id == todo_id).first()
     db.delete(todo)
     db.commit()
     url = app.url_path_for("home")
     return RedirectResponse(url=url, status_code=status.HTTP_303_SEE_OTHER)
+
+@app.post("/upload/{todo_id}")
+async def upload_file(todo_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)):
+    todo = db.query(models.Todo).filter(models.Todo.id == todo_id).first()
+    if not todo:
+        raise HTTPException(status_code=404, detail="Todo not found")
+
+    file_location = f"files/{file.filename}"
+    if not os.path.exists('files'):
+        os.makedirs('files')
+
+    with open(file_location, "wb") as f:
+        content = await file.read()
+        f.write(content)
+
+    new_file = models.UploadedFile(todo_id=todo_id, filename=file.filename, uploaddate=datetime.now())
+    db.add(new_file)
+    db.commit()
+
+    return {"info": "File saved at", "location": file_location, "filename": file.filename, "upload_date": new_file.uploaddate.isoformat()}
+
+@app.get("/download/{file_id}")
+async def download_file(file_id: int, db: Session = Depends(get_db)):
+    file_data = db.query(models.UploadedFile).filter(models.UploadedFile.id == file_id).first()
+    if file_data is None:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    file_path = f"files/{file_data.filename}"
+    return FileResponse(path=file_path, filename=file_data.filename)
 
 # @app.get("/modify/{todo_id}")
 # def update2(req: Request, todo_id: int, )
