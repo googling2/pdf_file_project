@@ -5,7 +5,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 username = 'dbmasteruser'
 password = 'poiqwq12'
-host = 'ls-0f44ac8781fc8ebd52164e957a25ffc2511f62bc.c10g2og22png.ap-northeast-2.rds.amazonaws.com'
+host = 'localhost'
 port = '3306'  # MySQL 기본 포트
 database_name = 'dbmaster'
 
