@@ -6,6 +6,18 @@
         <title>Todo App - Fastapi</title>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css">
         <script src="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.js"></script>
+        <script>
+            function openUploadWindow(todoId) {
+                var myWindow = window.open("", "UploadWindow", "width=500,height=300");
+                myWindow.document.write(`
+                    <p>파일 업로드:</p>
+                    <form action="/upload/${todoId}" method="post" enctype="multipart/form-data">
+                        <input type="file" name="file"><br><br>
+                        <input type="submit" value="Upload">
+                    </form>
+                `);
+            }
+        </script>
     </head>
     <body>
         <div style="margin-top: 50px;" class="ui container">
@@ -35,7 +47,15 @@
 
                 <a class="ui blue button" href="/update/{{ todo.id }}">Update</a>
                 <a class="ui red button" href="/delete/{{ todo.id }}">Delete</a>
-                <!-- <a class="ui purple button" href="/modify/{{todo.id}}">수정</a> -->
+                <button class="ui purple button" onclick="openUploadWindow('{{todo.id}}')">Upload</button>
+                {% if todo.files %}
+                    {% for file in todo.files %}
+                        <a class="ui purple button" href="/download/{{ file.id }}">Download</a>
+                        <a class="ui orange button" href="/files/{{ file.filename }}">Preview</a>
+                    {% endfor %}
+                {% else %}
+                    <span>No files uploaded</span>
+                {% endif %}
                 <!-- 깃 작업 테스트중-->
             </div>
             {% endfor %}
