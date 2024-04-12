@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 import uvicorn
 import models
-
+print("실험")
 # models에 정의한 모든 클래스, 연결한 DB엔진에 테이블로 생성
 models.Base.metadata.create_all(bind=engine)
 
